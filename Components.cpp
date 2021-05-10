@@ -12,6 +12,7 @@ struct Processo {
     int prioridade;
     int quantidadeDePaginas;
     int idPagina;
+    int paginasProntas = 0;
     vector<Pagina> paginas;
     Processo(int tempoDeChegada, int tempoDeExecucao, int deadline,
              int prioridade, int quantidadeDePaginas, int idPagina) {
@@ -25,4 +26,5 @@ struct Processo {
             paginas.push_back(Pagina(i));
         }
     }
+    bool pronto() { return paginasProntas == quantidadeDePaginas; }
 };
