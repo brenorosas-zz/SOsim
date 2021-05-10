@@ -1,6 +1,4 @@
-#include <iostream>
-#include <vector>
-using namespace std;
+#include "header.cpp"
 struct Pagina {
     int idPagina;
     Pagina(int idPagina) { this->idPagina = idPagina; }
