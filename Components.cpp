@@ -1,6 +1,5 @@
 #include "header.cpp"
 #include "pages_algorithms.cpp"
-#include "process_algorithms.cpp"
 struct Pagina {
     int idPagina;
     int idProcessoAssociado;
@@ -8,6 +7,9 @@ struct Pagina {
     Pagina(int idPagina, int idProcesso) {
         this->idPagina = idPagina;
         this->idProcessoAssociado = idProcesso;
+    }
+    bool operator==(const Pagina p) const{
+        return this->idPagina == p.idPagina and this->idProcessoAssociado == p.idProcessoAssociado;
     }
 };
 struct Processo {
@@ -68,11 +70,26 @@ struct RAM {
     }
     Pagina addFIFO(Pagina pagina) {
         Pagina aux = ram[proximo];
-        rem[proximo] = pagina;
+        ram[proximo] = pagina;
         proximo = (proximo + 1) % 50;
         return aux;
     }
-    Pagina addEDF(Pagina pagina) {}
+    Pagina addMRU(Pagina pagina) {
+        Pagina aux = ram[queueEDF[0]];
+        ram[queueEDF[0]] = pagina;
+        queueEDF.push_back(queueEDF[0]);
+        queueEDF.erase(queueEDF.begin());
+        return aux;
+    }
+    void updateMRU(Pagina pagina){
+        for(int i = 0; i < 50; i++){
+            if(ram[queueEDF[i]] == pagina){
+                queueEDF.push_back(queueEDF[i]);
+                queueEDF.erase(queueEDF.begin() + i);
+                break;
+            }
+        }
+    }
 };
 struct MaquinaVirtual {
     DISCO disco;
@@ -84,21 +101,28 @@ struct MaquinaVirtual {
         disco = DISCO();
     }
     void addProcesso(Processo processo) { processos.push_back(processo); }
-    void FIFOpage(vector<Pagina> &paginas) {
+    void page(vector<Pagina> &paginas) {
         for (Pagina &pagina : paginas) {
             if (!ram.existe(pagina)) {
-                Pagina aux = ram.addFifo(pagina);
+                Pagina aux;
+                if(paginacao == "FIFO")
+                    aux = ram.addFIFO(pagina);
+                if(paginacao == "MRU")
+                    aux = ram.addMRU(pagina);
                 if (aux.idPagina != -1) {
                     disco.add(aux);
                 }
                 disco.remove(pagina);
             }
+            else if(paginacao == "MRU"){
+                ram.updateMRU(pagina);
+            }
         }
     }
     void execute_processo(Processo &processo, int tempo) {
-        FIFOpage(processo.paginas);
-
+        page(processo.paginas);
         processo.paginasProntas = processo.paginas.size();
+        sleep(tempo*1000);
     }
     void FIFO() {
         if (processos.size() == 0) return;
@@ -110,12 +134,13 @@ struct MaquinaVirtual {
         cin >> escalonador >> paginacao;
         if (escalonador == "FIFO") {
             FIFO();
-        } else if (escalonador == "SJF") {
-            SJF();
-        } else if (escalonador == "RoundRobin") {
-            RoundRobin();
-        } else if (escalonador == "EDF") {
-            EDF();
-        }
+        } 
+        // else if (escalonador == "SJF") {
+        //     SJF();
+        // } else if (escalonador == "RoundRobin") {
+        //     RoundRobin();
+        // } else if (escalonador == "EDF") {
+        //     EDF();
+        // }
     }
 };
