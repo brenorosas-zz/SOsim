@@ -8,8 +8,9 @@ struct Pagina {
         this->idPagina = idPagina;
         this->idProcessoAssociado = idProcesso;
     }
-    bool operator==(const Pagina p) const{
-        return this->idPagina == p.idPagina and this->idProcessoAssociado == p.idProcessoAssociado;
+    bool operator==(const Pagina p) const {
+        return this->idPagina == p.idPagina and
+               this->idProcessoAssociado == p.idProcessoAssociado;
     }
 };
 struct Processo {
@@ -81,9 +82,9 @@ struct RAM {
         queueEDF.erase(queueEDF.begin());
         return aux;
     }
-    void updateMRU(Pagina pagina){
-        for(int i = 0; i < 50; i++){
-            if(ram[queueEDF[i]] == pagina){
+    void updateMRU(Pagina pagina) {
+        for (int i = 0; i < 50; i++) {
+            if (ram[queueEDF[i]] == pagina) {
                 queueEDF.push_back(queueEDF[i]);
                 queueEDF.erase(queueEDF.begin() + i);
                 break;
@@ -96,25 +97,24 @@ struct MaquinaVirtual {
     RAM ram;
     vector<Processo> processos;
     string escalonador, paginacao;
+    int tempo;
     MaquinaVirtual() {
         ram = RAM();
         disco = DISCO();
+        tempo = 0;
     }
     void addProcesso(Processo processo) { processos.push_back(processo); }
     void page(vector<Pagina> &paginas) {
         for (Pagina &pagina : paginas) {
             if (!ram.existe(pagina)) {
                 Pagina aux;
-                if(paginacao == "FIFO")
-                    aux = ram.addFIFO(pagina);
-                if(paginacao == "MRU")
-                    aux = ram.addMRU(pagina);
+                if (paginacao == "FIFO") aux = ram.addFIFO(pagina);
+                if (paginacao == "MRU") aux = ram.addMRU(pagina);
                 if (aux.idPagina != -1) {
                     disco.add(aux);
                 }
                 disco.remove(pagina);
-            }
-            else if(paginacao == "MRU"){
+            } else if (paginacao == "MRU") {
                 ram.updateMRU(pagina);
             }
         }
@@ -122,19 +122,51 @@ struct MaquinaVirtual {
     void execute_processo(Processo &processo, int tempo) {
         page(processo.paginas);
         processo.paginasProntas = processo.paginas.size();
-        sleep(tempo*1000);
+        sleep(tempo * 1000);
+    }
+    bool cmpFIFO(Processo a, Processo b) {
+        return a.tempoDeChegada < b.tempoDeChegada;
     }
     void FIFO() {
         if (processos.size() == 0) return;
+        sort(processos.begin(), processos.end(), cmpFIFO);
         for (Processo &processo : processos) {
+            if (processo.tempoDeChegada < tempo) {
+                sleep(processo.tempoDeChegada - tempo);
+            }
             execute_processo(processo, processo.tempoDeExecucao);
+            tempo += processo.tempoDeExecucao;
+        }
+    }
+    struct cmpSJF : binary_function<Processo, Processo, bool> {
+        bool operator()(const Processo &a, const Processo &b) const {
+            return a.tempoDeExecucao < b.tempoDeExecucao;
+        }
+    };
+    void SJF() {
+        int at = 0;
+        sort(processos.begin(), processos.end(), cmpFIFO);
+        priority_queue<Processo, vector<Processo>, cmpSJF> queue;
+        while (!queue.empty() or at < processos.size() - 1) {
+            if (queue.empty() and tempo < processos[at].tempoDeChegada) {
+                sleep(processos[at].tempoDeChegada - tempo);
+                tempo = processos[at].tempoDeChegada;
+            }
+            while (at < processos.size() and
+                   processos[at].tempoDeChegada <= tempo) {
+                queue.push(processos[at]);
+                at++;
+            }
+            Processo aux = queue.top();
+            execute_processo(aux, aux.tempoDeExecucao);
+            queue.pop();
         }
     }
     void rodar() {
         cin >> escalonador >> paginacao;
         if (escalonador == "FIFO") {
             FIFO();
-        } 
+        }
         // else if (escalonador == "SJF") {
         //     SJF();
         // } else if (escalonador == "RoundRobin") {

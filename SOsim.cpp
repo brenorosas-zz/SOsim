@@ -3,7 +3,7 @@
 int32_t main() {
     int n;
     cin >> n;
-    MaquinaVirtual maquina;
+    MaquinaVirtual maquina = MaquinaVirtual();
     for (int i = 0; i < n; i++) {
         int tempoDeChegada, tempoDeExecucao, deadline, prioridade,
             quantidadeDePaginas, idProcesso = i;
