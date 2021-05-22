@@ -1,12 +1,10 @@
 #include "Components.cpp"
 #include "header.cpp"
-int32_t main()
-{
+int32_t main() {
     int n;
     cin >> n;
     MaquinaVirtual maquina = MaquinaVirtual();
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
         int tempoDeChegada, tempoDeExecucao, deadline, prioridade,
             quantidadeDePaginas, idProcesso = i;
         cin >> tempoDeChegada >> tempoDeExecucao >> deadline >> prioridade >>
@@ -16,9 +14,8 @@ int32_t main()
                                      idProcesso));
     }
     cin >> maquina.paginacao >> maquina.escalonador;
-    if (maquina.escalonador == "RoundRobin")
-    {
+    if (maquina.escalonador == "RoundRobin" or maquina.escalonador == "EDF") {
         cin >> maquina.quantum;
     }
-    maquina.rodar();
+    cout << maquina.rodar() << " é o turnaround médio" << endl;
 }
