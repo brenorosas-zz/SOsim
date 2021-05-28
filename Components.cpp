@@ -100,9 +100,41 @@ struct RAM {
         }
     }
 };
+
+void renderConsole(DISCO disco, RAM ram, vector<vector<char> >&gant){
+    for(int i = 0; i < gant.size(); i++){
+        for(int j = 0; j < gant[i].size(); j++){
+            cout << gant[i][j] << ' ';
+        }
+        cout << endl;
+    }
+    cout << endl << endl;
+    cout << "RAM" << endl;
+    for(int i = 0; i < 50; i++){
+        cout << i << "  ";
+    }
+    cout << endl;
+    for(int i = 0; i < 50; i++){
+        cout << ram.ram[i].idProcessoAssociado << ':' <<ram.ram[i].idPagina << "  ";
+    }
+    cout << endl << endl;
+    cout << "DISCO" << endl;
+    for(int i = 0; i < 100; i++){
+        cout << i << "  "; 
+    }
+    cout << endl;
+    for(auto &i : disco.disco){
+        cout << i.idProcessoAssociado << ':' <<i.idPagina << "  ";
+    }
+    cout << endl;
+    cout.flush();
+}
+
+vector<char> aux(150, '.');
 struct MaquinaVirtual {
     DISCO disco;
     RAM ram;
+    vector<vector<char> > gant;
     int quantum;
     int sobrecarga;
     vector<Processo> processos;
@@ -116,36 +148,44 @@ struct MaquinaVirtual {
     void addProcesso(Processo processo) { processos.push_back(processo); }
     void page(vector<Pagina> &paginas) {
         for (Pagina &pagina : paginas) {
-            cout << "paginando pagina " << pagina.idPagina << ' '
-                 << pagina.idProcessoAssociado << endl;
             if (!ram.existe(pagina)) {
-                cout << "Buscando pagina " << pagina.idPagina << ' '
-                     << pagina.idProcessoAssociado << " no disco" << endl;
                 Pagina aux;
                 if (paginacao == "FIFO") aux = ram.addFIFO(pagina);
                 if (paginacao == "MRU") aux = ram.addMRU(pagina);
                 if (aux.idProcessoAssociado != -1) {
-                    cout << "Removeu a pagina " << aux.idPagina << ' '
-                         << aux.idProcessoAssociado << " da Ram" << endl;
                     disco.add(aux);
                 }
-                tempo++;
-                disco.remove(pagina);
+                if(disco.existe(pagina)){
+                    disco.remove(pagina);
+                    renderConsole(disco,ram,gant);
+                    tempo++;
+                }
             } else if (paginacao == "MRU") {
                 ram.updateMRU(pagina);
             }
         }
     }
     void execute_processo(Processo &processo, int tempoDeExecucao) {
-        cout << "Preparando processo " << processo.idProcesso
-             << " para execução" << endl;
         page(processo.paginas);
         processo.paginasProntas = processo.paginas.size();
-        cout << "Processo pronto para executar" << endl;
-        sleep(tempoDeExecucao);
-        cout << "Processo " << processo.idProcesso << " executado" << endl;
+        for(int i = 0; i < tempoDeExecucao; i++){
+            if(processo.deadline < tempo)
+                processo.estourou = true;
+            if(processo.estourou)
+                gant[processo.idProcesso][tempo] = 'D';
+            else
+                gant[processo.idProcesso][tempo] = 'E';
+            tempo++;
+            renderConsole(disco,ram,gant);
+            sleep(1);
+        }
         processo.tempoDeExecucao -= tempoDeExecucao;
-        tempo += tempoDeExecucao;
+        if(processo.tempoDeExecucao > 0){
+            gant[processo.idProcesso][tempo] = 'S';
+            renderConsole(disco,ram,gant);
+            tempo++;
+            sleep(1);
+        }
     }
     static bool cmpFIFO(Processo a, Processo b) {
         return a.tempoDeChegada < b.tempoDeChegada;
@@ -154,10 +194,11 @@ struct MaquinaVirtual {
         double somaDeTurnaround = 0;
         for (Processo &processo : processos) {
             if (processo.tempoDeChegada > tempo) {
-                cout << "Aguardando próximo processo" << endl;
                 sleep(processo.tempoDeChegada - tempo);
                 tempo = processo.tempoDeChegada;
             }
+            gant.push_back(aux);
+            renderConsole(disco, ram, gant);
             execute_processo(processo, processo.tempoDeExecucao);
             if (tempo > processo.deadline) {
                 processo.estourou = true;
@@ -177,12 +218,11 @@ struct MaquinaVirtual {
         priority_queue<Processo, vector<Processo>, cmpSJF> queue;
         while (!queue.empty() or at < processos.size() - 1) {
             if (queue.empty() and tempo < processos[at].tempoDeChegada) {
-                cout << "Aguardando próximo processo" << endl;
                 sleep(processos[at].tempoDeChegada - tempo);
                 tempo = processos[at].tempoDeChegada;
             }
             while (at < processos.size() and
-                   processos[at].tempoDeChegada <= tempo) {
+                processos[at].tempoDeChegada <= tempo) {
                 queue.push(processos[at]);
                 at++;
             }
@@ -201,10 +241,11 @@ struct MaquinaVirtual {
             Processo processo = fila.front();
             fila.pop();
             if (processo.tempoDeChegada > tempo) {
-                cout << "Aguardando próximo processo" << endl;
                 sleep(processo.tempoDeChegada - tempo);
                 tempo = processo.tempoDeChegada;
             }
+            gant.push_back(aux);
+            renderConsole(disco, ram, gant);
             execute_processo(processo, min(quantum, processo.tempoDeExecucao));
             if (tempo > processo.deadline) {
                 processo.estourou = true;
@@ -231,8 +272,8 @@ struct MaquinaVirtual {
         priority_queue<Processo, vector<Processo>, cmpEDF> queue;
         while (!queue.empty() or at < processos.size() - 1) {
             if (queue.empty() and tempo < processos[at].tempoDeChegada) {
-                cout << "Aguardando próximo processo" << endl;
                 sleep(processos[at].tempoDeChegada - tempo);
+
                 tempo = processos[at].tempoDeChegada;
             }
             while (at < processos.size() and
@@ -248,8 +289,6 @@ struct MaquinaVirtual {
             }
             if (aux.tempoDeExecucao > 0) {
                 queue.push(aux);
-                tempo += sobrecarga;
-                sleep(sobrecarga);
             } else {
                 somaDeTurnaround += tempo - aux.tempoDeChegada;
             }
