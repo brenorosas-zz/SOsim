@@ -38,7 +38,12 @@ struct Processo {
 };
 struct DISCO {
     vector<Pagina> disco;
-    DISCO(){};
+    DISCO() {
+        disco.resize(100);
+        for (int i = 0; i < 100; i++) {
+            disco[i] = Pagina(i, -1);
+        }
+    };
     bool existe(Pagina pagina) {
         for (auto &paginaD : disco)
             if (pagina == paginaD) return true;
@@ -99,6 +104,7 @@ struct MaquinaVirtual {
     DISCO disco;
     RAM ram;
     int quantum;
+    int sobrecarga;
     vector<Processo> processos;
     string escalonador, paginacao;
     int tempo;
@@ -205,6 +211,8 @@ struct MaquinaVirtual {
             }
             if (processo.tempoDeExecucao > 0) {
                 fila.push(processo);
+                tempo += sobrecarga;
+                sleep(sobrecarga);
             } else {
                 somaDeTurnaround += tempo - processo.tempoDeChegada;
             }
@@ -240,6 +248,8 @@ struct MaquinaVirtual {
             }
             if (aux.tempoDeExecucao > 0) {
                 queue.push(aux);
+                tempo += sobrecarga;
+                sleep(sobrecarga);
             } else {
                 somaDeTurnaround += tempo - aux.tempoDeChegada;
             }

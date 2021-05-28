@@ -15,7 +15,7 @@ int32_t main() {
     }
     cin >> maquina.paginacao >> maquina.escalonador;
     if (maquina.escalonador == "RoundRobin" or maquina.escalonador == "EDF") {
-        cin >> maquina.quantum;
+        cin >> maquina.quantum >> maquina.sobrecarga;
     }
     cout << maquina.rodar() << " é o turnaround médio" << endl;
 }
