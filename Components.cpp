@@ -101,30 +101,31 @@ struct RAM {
     }
 };
 
-void renderConsole(DISCO disco, RAM ram, vector<vector<char> >&gant){
-    for(int i = 0; i < gant.size(); i++){
-        for(int j = 0; j < gant[i].size(); j++){
+void renderConsole(DISCO disco, RAM ram, vector<vector<char> > &gant) {
+    for (int i = 0; i < gant.size(); i++) {
+        for (int j = 0; j < gant[i].size(); j++) {
             cout << gant[i][j] << ' ';
         }
         cout << endl;
     }
     cout << endl << endl;
     cout << "RAM" << endl;
-    for(int i = 0; i < 50; i++){
+    for (int i = 0; i < 50; i++) {
         cout << i << "  ";
     }
     cout << endl;
-    for(int i = 0; i < 50; i++){
-        cout << ram.ram[i].idProcessoAssociado << ':' <<ram.ram[i].idPagina << "  ";
+    for (int i = 0; i < 50; i++) {
+        cout << ram.ram[i].idProcessoAssociado << ':' << ram.ram[i].idPagina
+             << "  ";
     }
     cout << endl << endl;
     cout << "DISCO" << endl;
-    for(int i = 0; i < 100; i++){
-        cout << i << "  "; 
+    for (int i = 0; i < 100; i++) {
+        cout << i << "  ";
     }
     cout << endl;
-    for(auto &i : disco.disco){
-        cout << i.idProcessoAssociado << ':' <<i.idPagina << "  ";
+    for (auto &i : disco.disco) {
+        cout << i.idProcessoAssociado << ':' << i.idPagina << "  ";
     }
     cout << endl;
     cout.flush();
@@ -155,9 +156,9 @@ struct MaquinaVirtual {
                 if (aux.idProcessoAssociado != -1) {
                     disco.add(aux);
                 }
-                if(disco.existe(pagina)){
+                if (disco.existe(pagina)) {
                     disco.remove(pagina);
-                    renderConsole(disco,ram,gant);
+                    renderConsole(disco, ram, gant);
                     tempo++;
                 }
             } else if (paginacao == "MRU") {
@@ -168,21 +169,20 @@ struct MaquinaVirtual {
     void execute_processo(Processo &processo, int tempoDeExecucao) {
         page(processo.paginas);
         processo.paginasProntas = processo.paginas.size();
-        for(int i = 0; i < tempoDeExecucao; i++){
-            if(processo.deadline < tempo)
-                processo.estourou = true;
-            if(processo.estourou)
+        for (int i = 0; i < tempoDeExecucao; i++) {
+            if (processo.deadline < tempo) processo.estourou = true;
+            if (processo.estourou)
                 gant[processo.idProcesso][tempo] = 'D';
             else
                 gant[processo.idProcesso][tempo] = 'E';
             tempo++;
-            renderConsole(disco,ram,gant);
+            renderConsole(disco, ram, gant);
             sleep(1);
         }
         processo.tempoDeExecucao -= tempoDeExecucao;
-        if(processo.tempoDeExecucao > 0){
+        if (processo.tempoDeExecucao > 0) {
             gant[processo.idProcesso][tempo] = 'S';
-            renderConsole(disco,ram,gant);
+            renderConsole(disco, ram, gant);
             tempo++;
             sleep(1);
         }
@@ -222,8 +222,9 @@ struct MaquinaVirtual {
                 tempo = processos[at].tempoDeChegada;
             }
             while (at < processos.size() and
-                processos[at].tempoDeChegada <= tempo) {
+                   processos[at].tempoDeChegada <= tempo) {
                 queue.push(processos[at]);
+                gant.push_back(aux);
                 at++;
             }
             Processo aux = queue.top();
@@ -273,20 +274,17 @@ struct MaquinaVirtual {
         while (!queue.empty() or at < processos.size() - 1) {
             if (queue.empty() and tempo < processos[at].tempoDeChegada) {
                 sleep(processos[at].tempoDeChegada - tempo);
-
                 tempo = processos[at].tempoDeChegada;
             }
             while (at < processos.size() and
                    processos[at].tempoDeChegada <= tempo) {
                 queue.push(processos[at]);
+                gant.push_back(aux);
                 at++;
             }
             Processo aux = queue.top();
             execute_processo(aux, quantum);
             queue.pop();
-            if (tempo > aux.deadline) {
-                aux.estourou = true;
-            }
             if (aux.tempoDeExecucao > 0) {
                 queue.push(aux);
             } else {
