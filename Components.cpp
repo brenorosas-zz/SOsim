@@ -298,7 +298,7 @@ struct MaquinaVirtual {
         double somaDeTurnaround = 0;
         int at = 0;
         priority_queue<Processo, vector<Processo>, cmpEDF> queue;
-        while (!queue.empty() or at < processos.size() - 1) {
+        while (!queue.empty() or at < processos.size()) {
             if (queue.empty() and tempo < processos[at].tempoDeChegada) {
                 sleep(processos[at].tempoDeChegada - tempo);
                 tempo = processos[at].tempoDeChegada;
@@ -306,12 +306,11 @@ struct MaquinaVirtual {
             while (at < processos.size() and
                    processos[at].tempoDeChegada <= tempo) {
                 queue.push(processos[at]);
-
                 at++;
             }
             Processo aux = queue.top();
-            execute_processo(aux, quantum);
             queue.pop();
+            execute_processo(aux, min(quantum, aux.tempoDeExecucao));
             if (aux.tempoDeExecucao > 0) {
                 queue.push(aux);
             } else {

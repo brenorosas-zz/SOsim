@@ -1,6 +1,7 @@
 #include "Components.cpp"
 #include "header.cpp"
 int32_t main() {
+    system("clear");
     MaquinaVirtual maquina = MaquinaVirtual();
     cout << "Algoritmo de paginação entre: FIFO MRU" << endl;
     cin >> maquina.paginacao;
