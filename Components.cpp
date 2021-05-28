@@ -265,14 +265,19 @@ struct MaquinaVirtual {
     double RoundRobin() {
         double somaDeTurnaround = 0;
         queue<Processo> fila;
-        for (Processo &processo : processos) fila.push(processo);
-        while (!fila.empty()) {
+        int at = 0;
+        while (!fila.empty() or at < processos.size()) {
+            if (fila.empty()) {
+                sleep(processos[at].tempoDeChegada - tempo);
+                tempo = processos[at].tempoDeChegada;
+            }
+            while (at < processos.size() and
+                   processos[at].tempoDeChegada <= tempo) {
+                fila.push(processos[at]);
+                at++;
+            }
             Processo processo = fila.front();
             fila.pop();
-            if (processo.tempoDeChegada > tempo) {
-                fila.push(processo);
-                continue;
-            }
             renderConsole(disco, ram, gant);
             execute_processo(processo, min(quantum, processo.tempoDeExecucao));
             if (processo.tempoDeExecucao > 0) {
@@ -321,6 +326,8 @@ struct MaquinaVirtual {
             gant[processo.idProcesso][processo.deadline] = '|';
         }
         if (processos.size() == 0) return 0;
+
+        renderConsole(disco, ram, gant);
         if (escalonador == "FIFO")
             return FIFO();
         else if (escalonador == "SJF")
