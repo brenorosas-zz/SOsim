@@ -38,12 +38,7 @@ struct Processo {
 };
 struct DISCO {
     vector<Pagina> disco;
-    DISCO() {
-        disco.resize(100);
-        for (int i = 0; i < 100; i++) {
-            disco[i] = Pagina(i, -1);
-        }
-    };
+    DISCO(){};
     bool existe(Pagina pagina) {
         for (auto &paginaD : disco)
             if (pagina == paginaD) return true;
@@ -53,13 +48,10 @@ struct DISCO {
     void remove(Pagina pagina) {
         for (int i = 0; i < disco.size(); i++) {
             if (pagina == disco[i]) {
-                cout << "Removendo do disco a pagina " << pagina.idPagina << ' '
-                     << pagina.idProcessoAssociado << endl;
                 disco.erase(i + disco.begin());
                 break;
             }
         }
-        sleep(1);
     }
 };
 struct RAM {
@@ -102,9 +94,12 @@ struct RAM {
 };
 
 void renderConsole(DISCO disco, RAM ram, vector<vector<char> > &gant) {
+    system("clear");
+    cout << "GANT" << endl;
     for (int i = 0; i < gant.size(); i++) {
+        cout << i << ":";
         for (int j = 0; j < gant[i].size(); j++) {
-            cout << gant[i][j] << ' ';
+            cout << gant[i][j];
         }
         cout << endl;
     }
@@ -115,8 +110,11 @@ void renderConsole(DISCO disco, RAM ram, vector<vector<char> > &gant) {
     }
     cout << endl;
     for (int i = 0; i < 50; i++) {
-        cout << ram.ram[i].idProcessoAssociado << ':' << ram.ram[i].idPagina
-             << "  ";
+        if (ram.ram[i].idProcessoAssociado == -1) {
+            cout << "-:- ";
+        } else
+            cout << ram.ram[i].idProcessoAssociado << ':' << ram.ram[i].idPagina
+                 << "  ";
     }
     cout << endl << endl;
     cout << "DISCO" << endl;
@@ -125,10 +123,12 @@ void renderConsole(DISCO disco, RAM ram, vector<vector<char> > &gant) {
     }
     cout << endl;
     for (auto &i : disco.disco) {
-        cout << i.idProcessoAssociado << ':' << i.idPagina << "  ";
+        if (i.idProcessoAssociado == -1) {
+            cout << "-:- ";
+        } else
+            cout << i.idProcessoAssociado << ':' << i.idPagina << "  ";
     }
     cout << endl;
-    cout.flush();
 }
 
 vector<char> aux(150, '.');
@@ -142,12 +142,14 @@ struct MaquinaVirtual {
     string escalonador, paginacao;
     int tempo;
     MaquinaVirtual() {
+        gant.resize(10, aux);
         ram = RAM();
         disco = DISCO();
         tempo = 0;
     }
     void addProcesso(Processo processo) { processos.push_back(processo); }
     void page(vector<Pagina> &paginas) {
+        bool buscou = false;
         for (Pagina &pagina : paginas) {
             if (!ram.existe(pagina)) {
                 Pagina aux;
@@ -157,13 +159,19 @@ struct MaquinaVirtual {
                     disco.add(aux);
                 }
                 if (disco.existe(pagina)) {
+                    buscou = true;
                     disco.remove(pagina);
-                    renderConsole(disco, ram, gant);
-                    tempo++;
                 }
             } else if (paginacao == "MRU") {
                 ram.updateMRU(pagina);
             }
+        }
+        if (buscou) {
+            for (int i = 0; i < 10; i++) {
+                gant[i][tempo] = '|';
+            }
+            renderConsole(disco, ram, gant);
+            tempo++;
         }
     }
     void execute_processo(Processo &processo, int tempoDeExecucao) {
@@ -197,12 +205,8 @@ struct MaquinaVirtual {
                 sleep(processo.tempoDeChegada - tempo);
                 tempo = processo.tempoDeChegada;
             }
-            gant.push_back(aux);
             renderConsole(disco, ram, gant);
             execute_processo(processo, processo.tempoDeExecucao);
-            if (tempo > processo.deadline) {
-                processo.estourou = true;
-            }
             somaDeTurnaround += (tempo - processo.tempoDeChegada);
         }
         return somaDeTurnaround / (int)processos.size();
@@ -216,7 +220,7 @@ struct MaquinaVirtual {
         double somaDeTurnaround = 0;
         int at = 0;
         priority_queue<Processo, vector<Processo>, cmpSJF> queue;
-        while (!queue.empty() or at < processos.size() - 1) {
+        while (!queue.empty() or at < processos.size()) {
             if (queue.empty() and tempo < processos[at].tempoDeChegada) {
                 sleep(processos[at].tempoDeChegada - tempo);
                 tempo = processos[at].tempoDeChegada;
@@ -224,7 +228,7 @@ struct MaquinaVirtual {
             while (at < processos.size() and
                    processos[at].tempoDeChegada <= tempo) {
                 queue.push(processos[at]);
-                gant.push_back(aux);
+
                 at++;
             }
             Processo aux = queue.top();
@@ -242,19 +246,13 @@ struct MaquinaVirtual {
             Processo processo = fila.front();
             fila.pop();
             if (processo.tempoDeChegada > tempo) {
-                sleep(processo.tempoDeChegada - tempo);
-                tempo = processo.tempoDeChegada;
+                fila.push(processo);
+                continue;
             }
-            gant.push_back(aux);
             renderConsole(disco, ram, gant);
             execute_processo(processo, min(quantum, processo.tempoDeExecucao));
-            if (tempo > processo.deadline) {
-                processo.estourou = true;
-            }
             if (processo.tempoDeExecucao > 0) {
                 fila.push(processo);
-                tempo += sobrecarga;
-                sleep(sobrecarga);
             } else {
                 somaDeTurnaround += tempo - processo.tempoDeChegada;
             }
@@ -279,7 +277,7 @@ struct MaquinaVirtual {
             while (at < processos.size() and
                    processos[at].tempoDeChegada <= tempo) {
                 queue.push(processos[at]);
-                gant.push_back(aux);
+
                 at++;
             }
             Processo aux = queue.top();
