@@ -38,17 +38,27 @@ struct Processo {
 };
 struct DISCO {
     vector<Pagina> disco;
-    DISCO(){};
+    DISCO() {
+        disco.resize(100);
+        for (int i = 0; i < 100; i++) disco[i] = Pagina(i, -1);
+    };
     bool existe(Pagina pagina) {
         for (auto &paginaD : disco)
             if (pagina == paginaD) return true;
         return false;
     }
-    void add(Pagina pagina) { disco.push_back(pagina); }
+    void add(Pagina pagina) {
+        for (int i = 0; i < 100; i++) {
+            if (disco[i] == Pagina(i, -1)) {
+                disco[i] = pagina;
+                break;
+            }
+        }
+    }
     void remove(Pagina pagina) {
         for (int i = 0; i < disco.size(); i++) {
             if (pagina == disco[i]) {
-                disco.erase(i + disco.begin());
+                disco[i] = Pagina(i, -1);
                 break;
             }
         }
@@ -103,30 +113,45 @@ void renderConsole(DISCO disco, RAM ram, vector<vector<char> > &gant) {
         }
         cout << endl;
     }
+    cout << "E - executando processo, D - executando processo após fim do "
+            "deadline, S - sobrecarga, B - buscando paginas no disco, | - "
+            "deadline"
+         << endl;
     cout << endl << endl;
+    cout << "Pagina é identificada pelo processo que a utiliza e a posição "
+            "dela nesse processo"
+         << endl;
     cout << "RAM" << endl;
-    for (int i = 0; i < 50; i++) {
-        cout << i << "  ";
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 10; j++) {
+            int pos = 5 * j + i;
+            cout << pos << " |";
+            if (ram.ram[pos].idProcessoAssociado == -1) {
+                cout << "-:-|"
+                     << " \t";
+            } else {
+                cout << ram.ram[pos].idProcessoAssociado << ':'
+                     << ram.ram[pos].idPagina << "| \t";
+            }
+        }
+        cout << endl;
     }
     cout << endl;
-    for (int i = 0; i < 50; i++) {
-        if (ram.ram[i].idProcessoAssociado == -1) {
-            cout << "-:- ";
-        } else
-            cout << ram.ram[i].idProcessoAssociado << ':' << ram.ram[i].idPagina
-                 << "  ";
-    }
-    cout << endl << endl;
+
     cout << "DISCO" << endl;
-    for (int i = 0; i < 100; i++) {
-        cout << i << "  ";
-    }
-    cout << endl;
-    for (auto &i : disco.disco) {
-        if (i.idProcessoAssociado == -1) {
-            cout << "-:- ";
-        } else
-            cout << i.idProcessoAssociado << ':' << i.idPagina << "  ";
+    for (int i = 0; i < 10; i++) {
+        for (int j = 0; j < 10; j++) {
+            int pos = 10 * j + i;
+            cout << pos << " |";
+            if (disco.disco[pos].idProcessoAssociado == -1) {
+                cout << "-:-|"
+                     << " \t";
+            } else {
+                cout << disco.disco[pos].idProcessoAssociado << ':'
+                     << disco.disco[pos].idPagina << "| \t";
+            }
+        }
+        cout << endl;
     }
     cout << endl;
 }
@@ -148,7 +173,7 @@ struct MaquinaVirtual {
         tempo = 0;
     }
     void addProcesso(Processo processo) { processos.push_back(processo); }
-    void page(vector<Pagina> &paginas) {
+    void page(vector<Pagina> &paginas, int processoID) {
         bool buscou = false;
         for (Pagina &pagina : paginas) {
             if (!ram.existe(pagina)) {
@@ -167,23 +192,22 @@ struct MaquinaVirtual {
             }
         }
         if (buscou) {
-            for (int i = 0; i < 10; i++) {
-                gant[i][tempo] = '|';
-            }
+            gant[processoID][tempo] = 'B';
             renderConsole(disco, ram, gant);
+            sleep(1);
             tempo++;
         }
     }
     void execute_processo(Processo &processo, int tempoDeExecucao) {
-        page(processo.paginas);
+        page(processo.paginas, processo.idProcesso);
         processo.paginasProntas = processo.paginas.size();
         for (int i = 0; i < tempoDeExecucao; i++) {
+            tempo++;
             if (processo.deadline < tempo) processo.estourou = true;
             if (processo.estourou)
-                gant[processo.idProcesso][tempo] = 'D';
+                gant[processo.idProcesso][tempo - 1] = 'D';
             else
-                gant[processo.idProcesso][tempo] = 'E';
-            tempo++;
+                gant[processo.idProcesso][tempo - 1] = 'E';
             renderConsole(disco, ram, gant);
             sleep(1);
         }
@@ -293,6 +317,9 @@ struct MaquinaVirtual {
     }
     double rodar() {
         sort(processos.begin(), processos.end(), cmpFIFO);
+        for (auto &processo : processos) {
+            gant[processo.idProcesso][processo.deadline] = '|';
+        }
         if (processos.size() == 0) return 0;
         if (escalonador == "FIFO")
             return FIFO();
