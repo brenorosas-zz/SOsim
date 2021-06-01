@@ -67,11 +67,11 @@ struct DISCO {
 struct RAM {
     Pagina ram[50];
     int proximo = 0;
-    vector<int> queueEDF;
+    vector<int> queueMRU;
     RAM() {
         for (int i = 0; i < 50; i++) {
             ram[i] = Pagina(i, -1);
-            queueEDF.push_back(i);
+            queueMRU.push_back(i);
         }
     }
     bool existe(Pagina pagina) {
@@ -86,17 +86,17 @@ struct RAM {
         return aux;
     }
     Pagina addMRU(Pagina pagina) {
-        Pagina aux = ram[queueEDF[0]];
-        ram[queueEDF[0]] = pagina;
-        queueEDF.push_back(queueEDF[0]);
-        queueEDF.erase(queueEDF.begin());
+        Pagina aux = ram[queueMRU[0]];
+        ram[queueMRU[0]] = pagina;
+        queueMRU.push_back(queueMRU[0]);
+        queueMRU.erase(queueMRU.begin());
         return aux;
     }
     void updateMRU(Pagina pagina) {
         for (int i = 0; i < 50; i++) {
-            if (ram[queueEDF[i]] == pagina) {
-                queueEDF.push_back(queueEDF[i]);
-                queueEDF.erase(queueEDF.begin() + i);
+            if (ram[queueMRU[i]] == pagina) {
+                queueMRU.push_back(queueMRU[i]);
+                queueMRU.erase(queueMRU.begin() + i);
                 break;
             }
         }
